@@ -2,26 +2,26 @@ import logging
 import time
 import pkgutil
 
-import gobject, gtk
+from gi.repository import Gtk, Gdk, GLib
 import matplotlib
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
-from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo
+#from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo
 
 from timetag.binner import BufferBinner
 from timetag.managed_binner import ManagedBinner
 from timetag import config
 
 def fix_color(c):
-        c = gtk.gdk.color_parse(c)
+        c = Gdk.color_parse(c)
         return (c.red_float, c.green_float, c.blue_float)
 
 class BinSeriesPlot(ManagedBinner):
-        FigureCanvas = FigureCanvasGTKAgg
+        FigureCanvas = FigureCanvasGTK3Cairo
 
         def __init__(self, pipeline):
                 self.pipeline = pipeline
-                self.builder = gtk.Builder()
+                self.builder = Gtk.Builder()
                 src = pkgutil.get_data('timetag', 'bin_series.glade')
                 self.builder.add_from_string(src)
                 self.builder.connect_signals(self)
@@ -40,8 +40,8 @@ class BinSeriesPlot(ManagedBinner):
 
 	def on_started(self):
 		self._start_fps_display()
-                gobject.timeout_add(int(1000.0/self.plot_update_rate), self._update_plot,
-                                    priority=gobject.PRIORITY_DEFAULT_IDLE)
+                GLib.timeout_add(int(1000.0/self.plot_update_rate), self._update_plot,
+                                    priority=GLib.PRIORITY_DEFAULT_IDLE)
 
         def _start_fps_display(self):
                 self.fps_interval = 5 # seconds
@@ -53,11 +53,11 @@ class BinSeriesPlot(ManagedBinner):
 			    logging.debug("Plot: %2.1f FPS" % fps)
                         return self.is_running()
 
-                gobject.timeout_add_seconds(self.fps_interval, display_fps)
+                GLib.timeout_add_seconds(self.fps_interval, display_fps)
 
         def destroy_cb(self, a):
                 self.stop_binner()
-                gtk.main_quit()
+                Gtk.main_quit()
                 
         def _setup_plot(self):
                 self.last_timestamp = 0
@@ -71,7 +71,7 @@ class BinSeriesPlot(ManagedBinner):
                 self.axes.set_ylabel('Counts per bin')
                 self.lines = {}
                 canvas = self.__class__.FigureCanvas(self.figure)
-                self.builder.get_object('plot_container').pack_start(canvas)
+                self.builder.get_object('plot_container').pack_start(canvas,True,True,0)
 
         def create_binner(self):
                 binner = BufferBinner(self.bin_time, self.pipeline.clockrate)
