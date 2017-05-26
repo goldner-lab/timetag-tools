@@ -1,22 +1,21 @@
 import time
 import pkgutil
 
-import gobject, gtk
+from gi.repository import Gtk, GLib
 import matplotlib
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
-from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
 from collections import defaultdict
 
 from timetag.binner import FretHistBinner
 from timetag.managed_binner import ManagedBinner
 
 class FretHistPlot(ManagedBinner):
-        FigureCanvas = FigureCanvasGTKAgg
+        FigureCanvas = FigureCanvasGTK3Agg
 
         def __init__(self, pipeline):
                 self.pipeline = pipeline
-                self.builder = gtk.Builder()
+                self.builder = Gtk.Builder()
                 src = pkgutil.get_data('timetag', 'fret_hist.glade')
                 self.builder.add_from_string(src)
                 self.builder.connect_signals(self)
@@ -30,23 +29,22 @@ class FretHistPlot(ManagedBinner):
                                 matplotlib.ticker.ScalarFormatter(useOffset=False))
 
                 canvas = self.__class__.FigureCanvas(self.figure)
-                self.builder.get_object('plot_container').pack_start(canvas)
+                self.builder.get_object('plot_container').pack_start(canvas,True,True,0)
                 self.win.show_all()
                 ManagedBinner.__init__(self, self.pipeline, "fret-hist-plot")
 
         def create_binner(self):
                 get_obj = self.builder.get_object
-                model = get_obj('channel_model')
                 binner = FretHistBinner(self.bin_time, self.pipeline.clockrate)
-                binner.donor_channel = model[get_obj('donor_combo').get_active_iter()][0]
-                binner.acceptor_channel = model[get_obj('acceptor_combo').get_active_iter()][0]
+                binner.donor_channel = get_obj('donor_combo').get_active()
+                binner.acceptor_channel = get_obj('acceptor_combo').get_active()
                 binner.threshold = get_obj('threshold').get_value()
                 binner.hist_width = 1. / get_obj('nbins').get_value()
                 return binner
                 
         def on_started(self):
-                gobject.timeout_add(int(1000.0 / self.update_rate), self._update_plot,
-                                    priority=gobject.PRIORITY_DEFAULT_IDLE)
+                GLib.timeout_add(int(1000.0 / self.update_rate), self._update_plot,
+                                    priority=GLib.PRIORITY_DEFAULT_IDLE)
 
         @property
         def bin_time(self):
@@ -54,7 +52,7 @@ class FretHistPlot(ManagedBinner):
 
         def destroy_cb(self, a):
                 self.stop_binner()
-                gtk.main_quit()
+                Gtk.main_quit()
 
         def _update_plot(self):
                 binner = self.get_binner()

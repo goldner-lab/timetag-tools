@@ -40,9 +40,6 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo
 
 from timetag.capture_pipeline import CapturePipeline
-from timetag.bin_series_plot import BinSeriesPlot
-from timetag.hist_plot import HistPlot
-from timetag.fret_hist_plot import FretHistPlot
 from timetag.binner import BufferBinner
 from timetag.managed_binner import ManagedBinner
 from timetag import config
@@ -447,15 +444,12 @@ class MainWindow(object):
 
         def show_hist_activate_cb(self, action):
                 self.plot_processes.append(subprocess.Popen(['timetag_photon_hist']))
-                #HistPlot(self.pipeline)
 
         def show_bin_series_activate_cb(self, action):
                 self.plot_processes.append(subprocess.Popen(['timetag_bin_series']))
-                #BinSeriesPlot(self.pipeline)
 
         def show_fret_hist_activate_cb(self, action):
                 self.plot_processes.append(subprocess.Popen(['timetag_fret_hist']))
-                #FretHistPlot(self.pipeline)
 
 if __name__ == '__main__':
         from optparse import OptionParser
