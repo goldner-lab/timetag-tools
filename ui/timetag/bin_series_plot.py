@@ -5,8 +5,7 @@ import pkgutil
 from gi.repository import Gtk, Gdk, GLib
 import matplotlib
 from matplotlib.figure import Figure
-#from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
-from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
 
 from timetag.binner import BufferBinner
 from timetag.managed_binner import ManagedBinner
@@ -17,7 +16,7 @@ def fix_color(c):
         return (c.red_float, c.green_float, c.blue_float)
 
 class BinSeriesPlot(ManagedBinner):
-        FigureCanvas = FigureCanvasGTK3Cairo
+        FigureCanvas = FigureCanvasGTK3Agg
 
         def __init__(self, pipeline):
                 self.pipeline = pipeline
@@ -30,7 +29,7 @@ class BinSeriesPlot(ManagedBinner):
 
                 rc = config.load_rc()
                 self.colors = map(lambda chan: fix_color(chan.color), rc['strobe-channels'])
-                self.plot_update_rate = 12 # in Hertz
+                self.plot_update_rate = 15 # in Hertz
                 self.y_bounds = None
 
                 self.running = True
