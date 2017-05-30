@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import division
-import gtk
+from gi.repository import Gtk
 import socket
 import logging
 import zmq
@@ -58,35 +58,35 @@ class SeqWindow(object):
 
         def _build_window(self):
                 self.widgets = []
-                self.window = gtk.Window()
+                self.window = Gtk.Window()
                 self.window.set_icon_name('timetag_seq_ui.svg')
                 self.window.set_title('Timetagger Sequencer Configuration')
                 def quit(unused):
-                        gtk.main_quit()
+                        Gtk.main_quit()
                 self.window.connect('destroy', quit)
 
-                vbox = gtk.VBox()
+                vbox = Gtk.VBox()
                 self.window.add(vbox)
 
-                bbox = gtk.HButtonBox()
-                vbox.pack_start(bbox)
+                bbox = Gtk.HButtonBox()
+                vbox.pack_start(bbox,True,True,0)
 
                 seq_active = int(self._tagger_cmd('seq_operate?'))
-                btn = gtk.ToggleButton('Running' if seq_active else 'Stopped')
+                btn = Gtk.ToggleButton('Running' if seq_active else 'Stopped')
                 btn.set_active(seq_active)
                 btn.connect('toggled', self.operate_toggled_cb)
                 self.operate_btn = btn
-                bbox.pack_start(btn)
+                bbox.pack_start(btn,True,True,0)
 
-                btn = gtk.Button('Reset')
+                btn = Gtk.Button('Reset')
                 btn.connect('clicked', self.reset_cb)
-                bbox.pack_start(btn)
+                bbox.pack_start(btn,True,True,0)
 
-                hbox = gtk.HBox()
-                vbox.pack_start(hbox)
-                hbox.pack_start(gtk.Label('Time Units'))
-                combo = gtk.combo_box_new_text()
-                hbox.pack_start(combo)
+                hbox = Gtk.HBox()
+                vbox.pack_start(hbox,True,True,0)
+                hbox.pack_start(Gtk.Label('Time Units'),True,True,0)
+                combo = Gtk.ComboBoxText()
+                hbox.pack_start(combo,True,True,0)
                 combo.append_text('clock cycles')
                 combo.append_text('microseconds')
                 combo.append_text('milliseconds')
@@ -106,35 +106,35 @@ class SeqWindow(object):
                 self.get_time_multiplier = get_time_multiplier
                 time_mult = self.get_time_multiplier()
 
-                table = gtk.Table(rows=5, columns=7)
-                vbox.pack_end(table)
+                table = Gtk.Table(rows=5, columns=7)
+                vbox.pack_end(table,True,True,0)
 
-                w = gtk.Label()
+                w = Gtk.Label()
                 w.set_markup('<b>Enabled</b>')
                 table.attach(w, 1, 2, 0, 1)
 
-                w = gtk.Label()
+                w = Gtk.Label()
                 w.set_markup('<b>Initial</b>')
                 table.attach(w, 2, 4, 0, 1)
 
-                w = gtk.Label()
+                w = Gtk.Label()
                 w.set_markup('<b>Low</b>')
                 table.attach(w, 4, 5, 0, 1)
 
-                w = gtk.Label()
+                w = Gtk.Label()
                 w.set_markup('<b>High</b>')
                 table.attach(w, 5, 6, 0, 1)
 
                 self.controls = []
                 for c in range(4):
                         col = 0
-                        w = gtk.Label()
-                        w.set_markup('<i>Delta %d</i>' % c)
+                        w = Gtk.Label()
+                        w.set_markup('<i>Delta %d </i>' % c)
                         table.attach(w, col, col+1, c+1, c+2)
                         col += 1
 
                         active = int(self._tagger_cmd('seqchan_operate? %d' % c))
-                        state = gtk.ToggleButton('Enabled' if active else 'Disabled')
+                        state = Gtk.ToggleButton('Enabled' if active else 'Disabled')
                         state.set_active(active)
                         state.connect('toggled', self.enabled_changed_cb, c)
                         table.attach(state, col, col+1, c+1, c+2)
@@ -142,7 +142,7 @@ class SeqWindow(object):
                         col += 1
 
                         active = int(self._tagger_cmd('seqchan_initial_state? %d' % c))
-                        state = gtk.ToggleButton('High' if active else 'Low')
+                        state = Gtk.ToggleButton('High' if active else 'Low')
                         state.set_active(active)
                         state.connect('toggled', self.initial_state_changed_cb, c)
                         table.attach(state, col, col+1, c+1, c+2)
@@ -150,27 +150,27 @@ class SeqWindow(object):
                         col += 1
 
                         val = int(self._tagger_cmd('seqchan_initial_count? %d' % c)) / time_mult
-                        initial_adj = gtk.Adjustment(value=val, lower=0, upper=1e9, step_incr=100)
+                        initial_adj = Gtk.Adjustment(value=val, lower=0, upper=1e9, step_incr=100)
                         initial_adj.connect('value-changed', lambda w,ch: self.reconfig_channel(ch), c)
-                        w = gtk.SpinButton(initial_adj)
+                        w = Gtk.SpinButton(adjustment=initial_adj)
                         w.set_value(val)
                         table.attach(w, col, col+1, c+1, c+2)
                         self.widgets.append(w)
                         col += 1
 
                         val = int(self._tagger_cmd('seqchan_low_count? %d' % c)) / time_mult
-                        low_adj = gtk.Adjustment(value=val, lower=0, upper=1e9, step_incr=100)
+                        low_adj = Gtk.Adjustment(value=val, lower=0, upper=1e9, step_incr=100)
                         low_adj.connect('value-changed', lambda w,ch: self.reconfig_channel(ch), c)
-                        w = gtk.SpinButton(low_adj)
+                        w = Gtk.SpinButton(adjustment=low_adj)
                         w.set_value(val)
                         table.attach(w, col, col+1, c+1, c+2)
                         self.widgets.append(w)
                         col += 1
 
                         val = int(self._tagger_cmd('seqchan_high_count? %d' % c)) / time_mult
-                        high_adj = gtk.Adjustment(value=val, lower=0, upper=1e9, step_incr=100)
+                        high_adj = Gtk.Adjustment(value=val, lower=0, upper=1e9, step_incr=100)
                         high_adj.connect('value-changed', lambda w,ch: self.reconfig_channel(ch), c)
-                        w = gtk.SpinButton(high_adj)
+                        w = Gtk.SpinButton(adjustment=high_adj)
                         w.set_value(val)
                         table.attach(w, col, col+1, c+1, c+2)
                         self.widgets.append(w)
@@ -195,5 +195,5 @@ ctx = zmq.Context().instance()
 ctrl_sock = ctx.socket(zmq.REQ)
 ctrl_sock.connect('ipc:///tmp/timetag-ctrl')
 win = SeqWindow(ctrl_sock)
-gtk.main()
+Gtk.main()
 
