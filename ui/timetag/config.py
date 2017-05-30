@@ -9,16 +9,16 @@ DeltaChannel = namedtuple('DeltaChannel', 'enabled,label')
 
 default_rc = {
     'strobe-channels': [
+        (True,  '#006620', 'Strobe 0'),
         (True,  '#A80505', 'Strobe 1'),
-        (True,  '#006620', 'Strobe 2'),
-        (False, '#0142D5', 'Strobe 3'),
-        (False, '#9030FF', 'Strobe 4'),
+        (False, '#0142D5', 'Strobe 2'),
+        (False, '#9030FF', 'Strobe 3'),
         ],
     'delta-channels': [
+        (False, 'Delta 0'),
         (False, 'Delta 1'),
         (False, 'Delta 2'),
         (False, 'Delta 3'),
-        (False, 'Delta 4'),
         ],
     }
 

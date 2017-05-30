@@ -33,11 +33,12 @@ import subprocess
 from glob import glob
 import json
 
-import gobject, gtk
+import gi
+gi.require_version('Gtk','3.0')
+from gi.repository import Gtk, Gdk, GLib
 import matplotlib
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
-from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
 
 from timetag.capture_pipeline import CapturePipeline
 from timetag.binner import BufferBinner
@@ -51,18 +52,21 @@ class NumericalIndicators(ManagedBinner):
                 self.rate_mode = True
 
                 self.inputs = {}
-                table = gtk.Table(len(main_win.strobe_config)+1, 3)
+                table = Gtk.Table(len(main_win.strobe_config)+1, 3)
 
-                label = gtk.Label()
+                label = Gtk.Label()
                 label.set_markup('<span foreground="darkred" size="large">Loss Events</span>')
                 table.attach(label, 0,1, 0,1)
-                self.lost = gtk.Label()
+                self.lost = Gtk.Label()
                 table.attach(self.lost, 1,2, 0,1)
 
                 for c,config in enumerate(main_win.strobe_config):
                         if not config.enabled: continue
-                        label, photons = gtk.Label(), gtk.Label()
-                        label.set_markup('<span foreground="%s" size="large">%s</span>' % (config.color, config.label))
+                        label, photons = Gtk.Label(), Gtk.Label()
+                        rgba = Gdk.RGBA()
+                        rgba.parse(config.color)
+                        color_string = rgba.to_color().to_string()
+                        label.set_markup('<span foreground="%s" size="large">%s</span>' % (color_string, config.label))
                         table.attach(label, 0,1, c+1,c+2)
                         table.attach(photons, 1,2, c+1,c+2)
                         self.inputs[c] = photons
@@ -76,7 +80,7 @@ class NumericalIndicators(ManagedBinner):
 
 	def on_started(self):
                 """ Start indicators update loop """
-                gobject.timeout_add(int(1000.0/self.update_rate), self.update)
+                GLib.timeout_add(int(1000.0/self.update_rate), self.update)
 
         def update(self):
 		if not self.is_running(): return False
@@ -110,66 +114,68 @@ class NumericalIndicators(ManagedBinner):
                 self.lost.set_markup(markup)
 
 def run_channel_editor(parent, strobe_config, delta_config):
-        win = gtk.Dialog('Channel Editor', parent,
-                        gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-                        (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                         gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        vbox = gtk.VBox()
-        win.get_content_area().pack_start(vbox)
+        win = Gtk.Dialog('Channel Editor', parent,
+                        Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                        (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT,
+                         Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT))
+        vbox = Gtk.VBox()
+        win.get_content_area().pack_start(vbox,True,True,0)
 
         # Strobe channels
         strobes = []
-        table = gtk.Table(rows=4, columns=4)
+        table = Gtk.Table(rows=4, columns=4)
         for cfg,i in zip(strobe_config, range(4)):
-                a = gtk.Label()
+                a = Gtk.Label()
                 a.set_markup('<i>Strobe %d</i>' % i)
                 table.attach(a, 0, 1, i, i+1)
 
-                e = gtk.CheckButton('Enabled')
+                e = Gtk.CheckButton('Enabled')
                 e.set_active(cfg.enabled)
                 table.attach(e, 1, 2, i, i+1)
 
-                c = gtk.ColorButton(gtk.gdk.color_parse(cfg.color))
+                r = Gdk.RGBA()
+                r.parse(cfg.color)
+                c = Gtk.ColorButton(rgba=r, use_alpha=True)
                 table.attach(c, 2, 3, i, i+1)
 
-                l = gtk.Entry()
+                l = Gtk.Entry()
                 l.set_text(cfg.label)
                 table.attach(l, 3, 4, i, i+1)
 
                 strobes.append((e,c,l))
 
-        frame = gtk.Frame('Strobe')
+        frame = Gtk.Frame(label='Strobe')
         frame.add(table)
-        vbox.pack_end(frame)
+        vbox.pack_end(frame,True,True,0)
 
         # Delta channels
         deltas = []
-        table = gtk.Table(rows=4, columns=4)
+        table = Gtk.Table(rows=4, columns=4)
         for cfg,i in zip(delta_config, range(4)):
-                a = gtk.Label()
+                a = Gtk.Label()
                 a.set_markup('<i>Delta %d</i>' % (i+1))
                 table.attach(a, 0, 1, i, i+1)
 
-                e = gtk.CheckButton('Enabled')
+                e = Gtk.CheckButton('Enabled')
                 e.set_active(cfg.enabled)
                 table.attach(e, 1, 2, i, i+1)
 
-                l = gtk.Entry()
+                l = Gtk.Entry()
                 l.set_text(cfg.label)
                 table.attach(l, 3, 4, i, i+1)
 
                 deltas.append((e,l))
 
-        frame = gtk.Frame('Strobe')
+        frame = Gtk.Frame(label='Strobe')
         frame.add(table)
-        vbox.pack_end(frame)
+        vbox.pack_end(frame,True,True,0)
         win.show_all()
-        if win.run() == gtk.RESPONSE_REJECT:
+        if win.run() == Gtk.ResponseType.REJECT:
                 win.hide()
                 return None
 
         win.hide()
-        return ([ config.StrobeChannel(e.get_active(), c.get_color().to_string(), l.get_text()) for e,c,l in strobes ],
+        return ([ config.StrobeChannel(e.get_active(), c.get_rgba().to_string(), l.get_text()) for e,c,l in strobes ],
                 [ config.DeltaChannel(e.get_active(), l.get_text()) for e,l in deltas ])
         
 class MainWindow(object):
@@ -179,7 +185,7 @@ class MainWindow(object):
                 self._out_file = None
                 self._out_file_cat = None
 
-                self.builder = gtk.Builder()
+                self.builder = Gtk.Builder()
                 src = pkgutil.get_data('timetag', 'main.glade')
                 self.builder.add_from_string(src)
                 self.builder.connect_signals(self)
@@ -203,7 +209,7 @@ class MainWindow(object):
 
                 if self.pipeline:
                         self.stop_readout()
-                gtk.main_quit()
+                Gtk.main_quit()
 
         def load_rc(self):
                 get_obj = self.builder.get_object
@@ -235,7 +241,7 @@ class MainWindow(object):
                 if self.indicators:
                         stats.remove(self.indicators.widget)
                 self.indicators = NumericalIndicators(self)
-                stats.pack_start(self.indicators.widget)
+                stats.pack_start(self.indicators.widget,True,True,0)
                 self.indicators.widget.show_all()
 
         def usb_latency_changed_cb(self, combobox):
@@ -258,19 +264,19 @@ class MainWindow(object):
                 self.select_output_file()
 
         def select_output_file(self):
-                filter = gtk.FileFilter()
+                filter = Gtk.FileFilter()
                 filter.set_name('Timetag data file')
                 filter.add_pattern('*.timetag')
 
-                fc = gtk.FileChooserDialog('Select output file', self.win,
-                                gtk.FILE_CHOOSER_ACTION_SAVE,
-                                (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                 gtk.STOCK_OK, gtk.RESPONSE_OK))
+                fc = Gtk.FileChooserDialog('Select output file', self.win,
+                                Gtk.FileChooserAction.SAVE,
+                                (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                 Gtk.STOCK_OK, Gtk.ResponseType.OK))
                 fc.add_filter(filter)
                 fc.props.do_overwrite_confirmation = True
                 res = fc.run()
                 fc.hide()
-                if res == gtk.RESPONSE_OK:
+                if res == Gtk.ResponseType.OK:
                         self.builder.get_object('output_file').props.text = \
                             fc.get_filename()
 
@@ -334,16 +340,16 @@ class MainWindow(object):
                         outfile = get_obj('output_file').props.text
                         outfile = os.path.expanduser(outfile)
                         if os.path.exists(outfile):
-                                dialog = gtk.MessageDialog(
+                                dialog = Gtk.MessageDialog(
                                                 parent=self.win,
-                                                flags=gtk.DIALOG_MODAL,
-                                                type=gtk.MESSAGE_QUESTION,
-                                                buttons=gtk.BUTTONS_YES_NO,
+                                                flags=Gtk.DialogFlags.MODAL,
+                                                type=Gtk.MessageType.QUESTION,
+                                                buttons=Gtk.ButtonsType.YES_NO,
                                                 message_format='The file "%s" already exists. Replace?' % outfile)
                                 resp = dialog.run()
                                 dialog.hide()
                                 del dialog
-                                if resp != gtk.RESPONSE_YES:
+                                if resp != Gtk.ResponseType.YES:
                                         get_obj('readout_running').props.active = False
                                         get_obj('readout_running').props.label = "Stopped"
                                         return
@@ -383,7 +389,7 @@ class MainWindow(object):
                                 return False
                         return True
 
-                gobject.timeout_add_seconds(1, timer_cb)
+                GLib.timeout_add_seconds(1, timer_cb)
 
                 hook_env = self.get_hook_env()
                 hooks = glob('/etc/timetag/acquire-hooks.d/*') + \
@@ -461,7 +467,7 @@ if __name__ == '__main__':
         if opts.debug:
                 logging.basicConfig(level=logging.DEBUG)
 
-        gtk.gdk.threads_init()
+        Gdk.threads_init()
         win = MainWindow()
-        gtk.main()
+        Gtk.main()
 

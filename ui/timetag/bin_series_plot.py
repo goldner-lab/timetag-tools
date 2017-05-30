@@ -12,8 +12,9 @@ from timetag.managed_binner import ManagedBinner
 from timetag import config
 
 def fix_color(c):
-        c = Gdk.color_parse(c)
-        return (c.red_float, c.green_float, c.blue_float)
+        r = Gdk.RGBA()
+        r.parse(c)
+        return (r.red, r.green, r.blue, r.alpha)
 
 class BinSeriesPlot(ManagedBinner):
         FigureCanvas = FigureCanvasGTK3Agg
