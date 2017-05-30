@@ -79,13 +79,13 @@ class HistPlot(ManagedBinner):
 
         @property
         def bin_time(self):
-                return 1e-3 * self.builder.get_object('bin_width').props.value
+                return 1e-3 * self.builder.get_object('bin_time').props.value
 
         @property
         def hist_width(self):
                 return self.builder.get_object('hist_width').props.value
 
-        def bin_width_changed_cb(self, adj):
+        def bin_time_changed_cb(self, adj):
                 self.restart_binner()
 
         def hist_width_changed_cb(self, adj):
