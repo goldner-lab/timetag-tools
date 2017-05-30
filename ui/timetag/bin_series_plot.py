@@ -29,7 +29,10 @@ class BinSeriesPlot(ManagedBinner):
                 self.win.connect('destroy', self.destroy_cb)
 
                 rc = config.load_rc()
-                self.colors = map(lambda chan: fix_color(chan.color), rc['strobe-channels'])
+                self.colors = {n: fix_color(chan.color)
+                               for (n,chan) in enumerate(rc['strobe-channels'])
+                               if chan.enabled
+                               }
                 self.plot_update_rate = 15 # in Hertz
                 self.y_bounds = None
 
@@ -84,6 +87,7 @@ class BinSeriesPlot(ManagedBinner):
 		binner = self.get_binner()
 		if binner is None: return False
                 for n,channel in enumerate(binner.channels):
+                        if n not in self.colors: continue
                         bins = channel.counts.get()
                         if len(bins) == 0:
                                 continue
