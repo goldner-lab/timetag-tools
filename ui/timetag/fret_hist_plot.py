@@ -23,10 +23,11 @@ class FretHistPlot(ManagedBinner):
                 self.win.connect('destroy', self.destroy_cb)
                 self.update_rate = 0.3 # Hz
 
-                self.figure = Figure()
+                self.figure = Figure(tight_layout=True)
                 self.axes = self.figure.add_subplot(111)
                 self.axes.get_xaxis().set_major_formatter(
                                 matplotlib.ticker.ScalarFormatter(useOffset=False))
+                self.axes.set_xlabel('FRET Efficiency')
 
                 canvas = self.__class__.FigureCanvas(self.figure)
                 self.builder.get_object('plot_container').pack_start(canvas,True,True,0)
@@ -64,7 +65,7 @@ class FretHistPlot(ManagedBinner):
                 self.axes.bar(hist.keys(), hist.values(), hist_width)
                 self.axes.relim()
                 self.axes.set_xlim(0, 1)
-                self.axes.set_xlabel('FRET efficiency')
+                self.axes.set_xlabel('FRET Efficiency')
                 self.figure.canvas.draw()
                 return True
 
