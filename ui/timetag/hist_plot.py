@@ -1,11 +1,10 @@
 import time
 import pkgutil
 
-import gobject, gtk
+from gi.repository import Gtk, Gdk, GLib
 import matplotlib
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
-from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
 from collections import defaultdict
 
 from timetag.binner import HistBinner
@@ -13,14 +12,15 @@ from timetag.managed_binner import ManagedBinner
 from timetag import config
 
 def fix_color(c):
-        c = gtk.gdk.color_parse(c)
-        return (c.red_float, c.green_float, c.blue_float)
+        r = Gdk.RGBA()
+        r.parse(c)
+        return (r.red, r.green, r.blue)
 
 class HistPlot(ManagedBinner):
-        FigureCanvas = FigureCanvasGTKAgg
+        FigureCanvas = FigureCanvasGTK3Agg
 
         def __init__(self, pipeline):
-                self.builder = gtk.Builder()
+                self.builder = Gtk.Builder()
                 src = pkgutil.get_data('timetag', 'hist.glade')
                 self.builder.add_from_string(src)
                 self.builder.connect_signals(self)
@@ -34,16 +34,17 @@ class HistPlot(ManagedBinner):
                                for (n,chan) in enumerate(rc['strobe-channels'])
                                if chan.enabled
                                }
-                self.figure = Figure()
+                self.figure = Figure(tight_layout=True)
                 self.axes = {}
                 for n in self.colors:
                         axes = self.figure.add_subplot(len(self.colors),1,n+1)
                         axes.get_xaxis().set_major_formatter(
                                         matplotlib.ticker.ScalarFormatter(useOffset=False))
                         self.axes[n] = axes
+                axes.set_xlabel('Photons')
 
                 canvas = self.__class__.FigureCanvas(self.figure)
-                self.builder.get_object('plot_container').pack_start(canvas)
+                self.builder.get_object('plot_container').pack_start(canvas,True,True,0)
                 self.win.show_all()
                 ManagedBinner.__init__(self, self.pipeline, 'hist-plot')
 
@@ -54,12 +55,12 @@ class HistPlot(ManagedBinner):
                                   )
 
         def on_started(self):
-                gobject.timeout_add(int(1000.0 / self.update_rate), self._update_plot,
-                                    priority=gobject.PRIORITY_DEFAULT_IDLE)
+                GLib.timeout_add(int(1000.0 / self.update_rate), self._update_plot,
+                                    priority=GLib.PRIORITY_DEFAULT_IDLE)
 
         def destroy_cb(self, a):
                 self.stop_binner()
-                gtk.main_quit()
+                Gtk.main_quit()
 
         def _update_plot(self):
                 if self.get_binner() is None: return False
@@ -70,13 +71,15 @@ class HistPlot(ManagedBinner):
                         self.axes[c].bar(hist.keys(), hist.values(),
                                          self.hist_width, color=self.colors[c])
                         self.axes[c].relim()
+                        last_axis=c
+                self.axes[last_axis].set_xlabel('Photons')
 
                 self.figure.canvas.draw()
                 return True
 
         @property
         def bin_time(self):
-                return self.builder.get_object('bin_width').props.value
+                return 1e-3 * self.builder.get_object('bin_width').props.value
 
         @property
         def hist_width(self):
